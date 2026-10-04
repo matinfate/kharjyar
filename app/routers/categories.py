@@ -22,3 +22,10 @@ def create_category(data: schemas.CategoryCreate, db: Session = Depends(get_db))
 @router.get("/", response_model=list[schemas.CategoryRead])
 def list_categories(db: Session = Depends(get_db)):
     return db.query(models.Category).all()
+
+@router.get("/{category_id}", response_model=schemas.CategoryRead)
+def get_category(category_id: int, db: Session = Depends(get_db)):
+    category = db.get(models.Category, category_id)
+    if category is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return category
