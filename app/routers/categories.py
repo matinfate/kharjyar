@@ -1,6 +1,5 @@
-from fastapi import  APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import crud
 
 from app import models, schemas
 from app.database import get_db
@@ -13,7 +12,7 @@ def get_category_or_404(db: Session, category_id: int) -> models.Category:
         raise HTTPException(status_code=404, detail="Category not found")
     return category
 
-@router.post("/", response_model=schemas.CategoryRead, status_code=200)
+@router.post("/", response_model=schemas.CategoryRead, status_code=201)
 def create_category(data: schemas.CategoryCreate, db: Session = Depends(get_db)):
     existing = db.query(models.Category).filter_by(name=data.name).first()
     if existing:
