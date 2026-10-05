@@ -29,3 +29,11 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
     if category is None:
         raise HTTPException(status_code=404, detail="Category not found")
     return category
+
+@router.delete("/{category_id}", status_code=204)
+def delete_category(category_id: int, db: Session = Depends(get_db)):
+    category = db.get(models.Category, category_id)
+    if category is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+    db.delete(category)
+    db.commit()
