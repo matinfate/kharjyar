@@ -7,6 +7,12 @@ from app.database import get_db
 
 router = APIRouter(prefix="/categories", tags=["categories"])
 
+def get_category_or_404(db: Session, category_id: int) -> models.Category:
+    category = db.get(models.Category, category_id)
+    if category is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return category
+
 @router.post("/", response_model=schemas.CategoryRead, status_code=200)
 def create_category(data: schemas.CategoryCreate, db: Session = Depends(get_db)):
     existing = db.query(models.Category).filter_by(name=data.name).first()
@@ -25,15 +31,10 @@ def list_categories(db: Session = Depends(get_db)):
 
 @router.get("/{category_id}", response_model=schemas.CategoryRead)
 def get_category(category_id: int, db: Session = Depends(get_db)):
-    category = db.get(models.Category, category_id)
-    if category is None:
-        raise HTTPException(status_code=404, detail="Category not found")
-    return category
+    return get_category_or_404(db, category_id)
 
 @router.delete("/{category_id}", status_code=204)
 def delete_category(category_id: int, db: Session = Depends(get_db)):
-    category = db.get(models.Category, category_id)
-    if category is None:
-        raise HTTPException(status_code=404, detail="Category not found")
+    category = get_category_or_404(db, category_id)
     db.delete(category)
     db.commit()
