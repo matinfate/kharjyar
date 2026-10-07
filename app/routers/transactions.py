@@ -16,3 +16,12 @@ def create_transaction(data: schemas.TransactionCreate, db: Session = Depends(ge
     db.commit()
     db.refresh(transaction)
     return transaction
+
+@router.get("/", response_model=list[schemas.TransactionRead])
+def list_transactions(type: models.TransactionType | None = None, category_id: int | None = None, db: Session = Depends(get_db)):
+    query = db.query(models.Transaction)
+    if type is not None:
+        query = query.filter(models.Transaction.type == type)
+    if category_id is not None:
+        query = query.filter(models.Transaction.category_id == category_id)
+    return query.all()
