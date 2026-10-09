@@ -50,12 +50,18 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
 @router.patch("/{transaction_id}", response_model=schemas.TransactionRead)
 def update_transaction(transaction_id: int, data: schemas.TransactionUpdate, db: Session = Depends(get_db)):
     transaction = get_transaction_or_404(db, transaction_id)
-    chnges = data.model_dump(exclude_none=True)
+    changes = data.model_dump(exclude_unset=True)
 
-    if chnges.get("category_id") is not None:
-        get_category_or_404(db, chnges["category_id"])
+    if changes.get("category_id") is not None:
+        get_category_or_404(db, changes["category_id"])
 
-    for field, value in chnges.items():
+    for required in ("amount", "type", "date"):
+        if required in changes and changes[required] is None:
+            raise HTTPException(
+                status_code=422, detail=f"{required} cannot be null"
+            )
+
+    for field, value in changes.items():
         setattr(transaction, field, value)
 
     db.commit()
