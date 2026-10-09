@@ -26,3 +26,11 @@ class TransactionRead(BaseModel):
     date: datetime.date
     category_id: int | None
     model_config = ConfigDict(from_attributes=True)
+
+class TransactionUpdate(BaseModel):
+    amount: int | None = Field(default=None, gt=0)
+    type: TransactionType | None = None
+    description: str | None = None
+    date: datetime.date | None = None
+    category_id: int | None = None
+
