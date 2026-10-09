@@ -46,3 +46,18 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
     db.delete(transaction)
     db.commit()
 
+
+@router.patch("/{transaction_id}", response_model=schemas.TransactionRead)
+def update_transaction(transaction_id: int, data: schemas.TransactionUpdate, db: Session = Depends(get_db)):
+    transaction = get_transaction_or_404(db, transaction_id)
+    chnges = data.model_dump(exclude_none=True)
+
+    if chnges.get("category_id") is not None:
+        get_category_or_404(db, chnges["category_id"])
+
+    for field, value in chnges.items():
+        setattr(transaction, field, value)
+
+    db.commit()
+    db.refresh(transaction)
+    return transaction
