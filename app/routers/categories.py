@@ -38,5 +38,11 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
 @router.delete("/{category_id}", status_code=204)
 def delete_category(category_id: int, db: Session = Depends(get_db)):
     category = get_category_or_404(db, category_id)
+
+    has_transactions = (db.query(models.Transaction).filter_by(category_id=category_id).first())
+
+    if has_transactions is not None:
+        raise HTTPException(status_code=409, detail="Category has transactions and cannot be deleted")
+    
     db.delete(category)
     db.commit()
