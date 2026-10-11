@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+
 from app import models, schemas
 from app.database import get_db
 from app.routers.categories import get_category_or_404
-
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -17,7 +17,7 @@ def get_transaction_or_404(db: Session, transaction_id: int) -> models.Transacti
 
 
 @router.post("/", response_model=schemas.TransactionRead, status_code=201)
-def create_transaction(data: schemas.TransactionCreate, db: Session = Depends(get_db)):
+def create_transaction(data: schemas.TransactionCreate, db: Session = Depends(get_db)):  
     if data.category_id is not None:
         get_category_or_404(db, data.category_id)
 
@@ -29,7 +29,7 @@ def create_transaction(data: schemas.TransactionCreate, db: Session = Depends(ge
 
 
 @router.get("/", response_model=list[schemas.TransactionRead])
-def list_transactions(type: models.TransactionType | None = None, category_id: int | None = None, db: Session = Depends(get_db)):
+def list_transactions(type: models.TransactionType | None = None, category_id: int | None = None, db: Session = Depends(get_db)):  
     query = db.query(models.Transaction)
     if type is not None:
         query = query.filter(models.Transaction.type == type)
@@ -39,7 +39,7 @@ def list_transactions(type: models.TransactionType | None = None, category_id: i
 
 
 @router.get("/summary", response_model=schemas.Summary)
-def get_summary(db: Session = Depends(get_db)):
+def get_summary(db: Session = Depends(get_db)):  
     def total(transaction_type: models.TransactionType) -> int:
         result = (
             db.query(func.sum(models.Transaction.amount))
@@ -58,19 +58,19 @@ def get_summary(db: Session = Depends(get_db)):
 
 
 @router.get("/{transaction_id}", response_model=schemas.TransactionRead)
-def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
+def get_transaction(transaction_id: int, db: Session = Depends(get_db)):  
     return get_transaction_or_404(db, transaction_id)
 
 
 @router.delete("/{transaction_id}", status_code=204)
-def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
+def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):  
     transaction = get_transaction_or_404(db, transaction_id)
     db.delete(transaction)
     db.commit()
 
 
 @router.patch("/{transaction_id}", response_model=schemas.TransactionRead)
-def update_transaction(transaction_id: int, data: schemas.TransactionUpdate, db: Session = Depends(get_db)):
+def update_transaction(transaction_id: int, data: schemas.TransactionUpdate, db: Session = Depends(get_db)):  
     transaction = get_transaction_or_404(db, transaction_id)
     changes = data.model_dump(exclude_unset=True)
 

@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app import models, schemas
 from app.database import get_db
 
 router = APIRouter(prefix="/categories", tags=["categories"])
+
 
 def get_category_or_404(db: Session, category_id: int) -> models.Category:
     category = db.get(models.Category, category_id)
@@ -39,10 +41,12 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
 def delete_category(category_id: int, db: Session = Depends(get_db)):
     category = get_category_or_404(db, category_id)
 
-    has_transactions = (db.query(models.Transaction).filter_by(category_id=category_id).first())
+    has_transactions = (db.query(models.Transaction).filter_by(
+        category_id=category_id).first())
 
     if has_transactions is not None:
-        raise HTTPException(status_code=409, detail="Category has transactions and cannot be deleted")
-    
+        raise HTTPException(
+            status_code=409, detail="Category has transactions and cannot be deleted")
+
     db.delete(category)
     db.commit()
