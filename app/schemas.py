@@ -34,3 +34,8 @@ class TransactionUpdate(BaseModel):
     date: datetime.date | None = None
     category_id: int | None = None
 
+class Summary(BaseModel):
+    total_income: int
+    total_expense: int
+    balance: int
+
