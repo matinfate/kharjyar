@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import get_db
 from app.routers.categories import get_category_or_404
 
+
 router = APIRouter(prefix="/transactions", tags=["transactions"])
+
 
 def get_transaction_or_404(db: Session, transaction_id: int) -> models.Transaction:
     transaction = db.get(models.Transaction, transaction_id)
@@ -33,6 +36,25 @@ def list_transactions(type: models.TransactionType | None = None, category_id: i
     if category_id is not None:
         query = query.filter(models.Transaction.category_id == category_id)
     return query.all()
+
+
+@router.get("/summary", response_model=schemas.Summary)
+def get_summary(db: Session = Depends(get_db)):
+    def total(transaction_type: models.TransactionType) -> int:
+        result = (
+            db.query(func.sum(models.Transaction.amount))
+            .filter(models.Transaction.type == transaction_type)
+            .scalar()
+        )
+        return result or 0
+
+    income = total(models.TransactionType.income)
+    expense = total(models.TransactionType.expense)
+    return schemas.Summary(
+        total_income=income,
+        total_expense=expense,
+        balance=income - expense,
+    )
 
 
 @router.get("/{transaction_id}", response_model=schemas.TransactionRead)
