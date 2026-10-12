@@ -17,7 +17,7 @@ def get_transaction_or_404(db: Session, transaction_id: int) -> models.Transacti
 
 
 @router.post("/", response_model=schemas.TransactionRead, status_code=201)
-def create_transaction(data: schemas.TransactionCreate, db: Session = Depends(get_db)):  
+def create_transaction(data: schemas.TransactionCreate, db: Session = Depends(get_db)):
     if data.category_id is not None:
         get_category_or_404(db, data.category_id)
 
@@ -29,7 +29,7 @@ def create_transaction(data: schemas.TransactionCreate, db: Session = Depends(ge
 
 
 @router.get("/", response_model=list[schemas.TransactionRead])
-def list_transactions(type: models.TransactionType | None = None, category_id: int | None = None, db: Session = Depends(get_db)):  
+def list_transactions(type: models.TransactionType | None = None, category_id: int | None = None, db: Session = Depends(get_db)):
     query = db.query(models.Transaction)
     if type is not None:
         query = query.filter(models.Transaction.type == type)
@@ -39,7 +39,7 @@ def list_transactions(type: models.TransactionType | None = None, category_id: i
 
 
 @router.get("/summary", response_model=schemas.Summary)
-def get_summary(db: Session = Depends(get_db)):  
+def get_summary(db: Session = Depends(get_db)):
     def total(transaction_type: models.TransactionType) -> int:
         result = (
             db.query(func.sum(models.Transaction.amount))
@@ -57,20 +57,42 @@ def get_summary(db: Session = Depends(get_db)):
     )
 
 
+@router.get("/summary/by-category", response_model=list[schemas.CategoryTotal])
+def get_expense_by_category(db: Session = Depends(get_db)):
+    rows = (
+        db.query(
+            models.Category.id,
+            models.Category.name,
+            func.sum(models.Transaction.amount)
+        )
+        .select_from(models.Transaction)
+        .outerjoin(
+            models.Category, models.Transaction.category_id == models.Category.id
+        )
+        .filter(models.Transaction.type == models.TransactionType.expense)
+        .group_by(models.Category.id, models.Category.name)
+        .all()
+    )
+    return [
+        schemas.CategoryTotal(category_id=cid, category_name=name, total=total)
+        for cid, name, total in rows
+    ]
+
+
 @router.get("/{transaction_id}", response_model=schemas.TransactionRead)
-def get_transaction(transaction_id: int, db: Session = Depends(get_db)):  
+def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
     return get_transaction_or_404(db, transaction_id)
 
 
 @router.delete("/{transaction_id}", status_code=204)
-def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):  
+def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
     transaction = get_transaction_or_404(db, transaction_id)
     db.delete(transaction)
     db.commit()
 
 
 @router.patch("/{transaction_id}", response_model=schemas.TransactionRead)
-def update_transaction(transaction_id: int, data: schemas.TransactionUpdate, db: Session = Depends(get_db)):  
+def update_transaction(transaction_id: int, data: schemas.TransactionUpdate, db: Session = Depends(get_db)):
     transaction = get_transaction_or_404(db, transaction_id)
     changes = data.model_dump(exclude_unset=True)
 
