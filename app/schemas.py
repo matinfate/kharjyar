@@ -1,6 +1,7 @@
 import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+import jdatetime
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.models import TransactionType
 
@@ -31,6 +32,11 @@ class TransactionRead(BaseModel):
     date: datetime.date
     category_id: int | None
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def jalali_date(self) -> str:
+        return jdatetime.date.fromgregorian(date=self.date).strftime("%Y/%m/%d")
 
 
 class TransactionUpdate(BaseModel):
