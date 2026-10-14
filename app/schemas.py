@@ -50,8 +50,15 @@ class TransactionUpdate(BaseModel):
     amount: int | None = Field(default=None, gt=0)
     type: TransactionType | None = None
     description: str | None = None
-    date: datetime.date | None = None
+    jalali_date: str | None = None
     category_id: int | None = None
+
+    @field_validator("jalali_date")
+    @classmethod
+    def check_jalali_date(cls, value):
+        if value is not None:
+            parse_jalali(value)
+        return value
 
 
 class Summary(BaseModel):
