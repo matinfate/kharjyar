@@ -1,8 +1,8 @@
 import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
-from app.jalali import to_jalali_str
+from app.jalali import parse_jalali, to_jalali_str
 from app.models import TransactionType
 
 
@@ -20,8 +20,15 @@ class TransactionCreate(BaseModel):
     amount: int = Field(gt=0)
     type: TransactionType
     description: str | None = None
-    date: datetime.date | None = None
+    jalali_date: str | None = None
     category_id: int | None = None
+
+    @field_validator("jalali_date")
+    @classmethod
+    def check_jalali_date(cls, value):
+        if value is not None:
+            parse_jalali(value)
+        return value
 
 
 class TransactionRead(BaseModel):

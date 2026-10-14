@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
+from app.jalali import parse_jalali
 from app.routers.categories import get_category_or_404
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
@@ -21,7 +22,11 @@ def create_transaction(data: schemas.TransactionCreate, db: Session = Depends(ge
     if data.category_id is not None:
         get_category_or_404(db, data.category_id)
 
-    transaction = models.Transaction(**data.model_dump(exclude_none=True))
+    values = data.model_dump(exclude_none=True)
+    if "jalali_date" in values:
+        values["date"] = parse_jalali(values.pop("jalali_date"))
+
+    transaction = models.Transaction(**values)
     db.add(transaction)
     db.commit()
     db.refresh(transaction)
