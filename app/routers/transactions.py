@@ -101,6 +101,10 @@ def update_transaction(transaction_id: int, data: schemas.TransactionUpdate, db:
     transaction = get_transaction_or_404(db, transaction_id)
     changes = data.model_dump(exclude_unset=True)
 
+    if "jalali_date" in changes:
+        jalali = changes.pop("jalali_date")
+        changes["date"] = parse_jalali(jalali) if jalali is not None else None
+
     if changes.get("category_id") is not None:
         get_category_or_404(db, changes["category_id"])
 
