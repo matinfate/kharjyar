@@ -1,8 +1,8 @@
 import datetime
 
-import jdatetime
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
+from app.jalali import to_jalali_str
 from app.models import TransactionType
 
 
@@ -29,14 +29,14 @@ class TransactionRead(BaseModel):
     amount: int
     type: TransactionType
     description: str | None
-    date: datetime.date
+    date: datetime.date = Field(exclude=True)
     category_id: int | None
     model_config = ConfigDict(from_attributes=True)
 
     @computed_field
     @property
     def jalali_date(self) -> str:
-        return jdatetime.date.fromgregorian(date=self.date).strftime("%Y/%m/%d")
+        return to_jalali_str(self.date)
 
 
 class TransactionUpdate(BaseModel):
