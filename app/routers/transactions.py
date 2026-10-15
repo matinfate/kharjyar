@@ -48,19 +48,26 @@ def list_transactions(
     category_id: int | None = None,
     from_jalali: str | None = None,
     to_jalali: str | None = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     query = db.query(models.Transaction)
     if type is not None:
         query = query.filter(models.Transaction.type == type)
     if category_id is not None:
         query = query.filter(models.Transaction.category_id == category_id)
-    if from_jalali is not None:
-        query = query.filter(models.Transaction.date >=
-                             jalali_or_422(from_jalali))
-    if to_jalali is not None:
-        query = query.filter(models.Transaction.date <=
-                             jalali_or_422(to_jalali))
+
+    start = jalali_or_422(from_jalali) if from_jalali is not None else None
+    end = jalali_or_422(to_jalali) if to_jalali is not None else None
+
+    if start is not None and end is not None and start > end:
+        raise HTTPException(
+            status_code=422, detail="from_jalali must not be after to_jalali"
+        )
+
+    if start is not None:
+        query = query.filter(models.Transaction.date >= start)
+    if end is not None:
+        query = query.filter(models.Transaction.date <= end)
     return query.all()
 
 
