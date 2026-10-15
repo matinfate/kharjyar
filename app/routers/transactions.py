@@ -1,3 +1,5 @@
+import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -17,6 +19,13 @@ def get_transaction_or_404(db: Session, transaction_id: int) -> models.Transacti
     return transaction
 
 
+def jalali_or_422(value: str) -> datetime.date:
+    try:
+        return parse_jalali(value)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @router.post("/", response_model=schemas.TransactionRead, status_code=201)
 def create_transaction(data: schemas.TransactionCreate, db: Session = Depends(get_db)):
     if data.category_id is not None:
@@ -34,12 +43,24 @@ def create_transaction(data: schemas.TransactionCreate, db: Session = Depends(ge
 
 
 @router.get("/", response_model=list[schemas.TransactionRead])
-def list_transactions(type: models.TransactionType | None = None, category_id: int | None = None, db: Session = Depends(get_db)):
+def list_transactions(
+    type: models.TransactionType | None = None,
+    category_id: int | None = None,
+    from_jalali: str | None = None,
+    to_jalali: str | None = None,
+    db: Session = Depends(get_db)
+):
     query = db.query(models.Transaction)
     if type is not None:
         query = query.filter(models.Transaction.type == type)
     if category_id is not None:
         query = query.filter(models.Transaction.category_id == category_id)
+    if from_jalali is not None:
+        query = query.filter(models.Transaction.date >=
+                             jalali_or_422(from_jalali))
+    if to_jalali is not None:
+        query = query.filter(models.Transaction.date <=
+                             jalali_or_422(to_jalali))
     return query.all()
 
 
