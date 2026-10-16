@@ -13,3 +13,14 @@ def parse_jalali(value: str) -> datetime.date:
         return jdatetime.date(year, month, day).togregorian()
     except ValueError as exc:
         raise ValueError("jalali_date must look like 1405/08/01") from exc
+
+
+def month_range(year: int, month: int) -> tuple[datetime.date, datetime.date]:
+    first_date = jdatetime.date(year, month, 1)
+    if month == 12:
+        next_first_day = jdatetime.date(year+1, 1, 1)
+    else:
+        next_first_day = jdatetime.date(year, month+1, 1)
+
+    last_date = next_first_day.togregorian() - datetime.timedelta(days=1)
+    return first_date.togregorian(), last_date
