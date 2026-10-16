@@ -16,11 +16,11 @@ def parse_jalali(value: str) -> datetime.date:
 
 
 def month_range(year: int, month: int) -> tuple[datetime.date, datetime.date]:
-    first_date = jdatetime.date(year, month, 1)
+    first_day = jdatetime.date(year, month, 1)
     if month == 12:
-        next_first_day = jdatetime.date(year+1, 1, 1)
+        next_first_day = jdatetime.date(year + 1, 1, 1)
     else:
-        next_first_day = jdatetime.date(year, month+1, 1)
+        next_first_day = jdatetime.date(year, month + 1, 1)
 
-    last_date = next_first_day.togregorian() - datetime.timedelta(days=1)
-    return first_date.togregorian(), last_date
+    last_day = next_first_day - datetime.timedelta(days=1)
+    return first_day.togregorian(), last_day.togregorian()
