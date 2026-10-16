@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
-from app.jalali import parse_jalali
+from app.jalali import month_range, parse_jalali
 from app.routers.categories import get_category_or_404
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
@@ -24,6 +24,27 @@ def jalali_or_422(value: str) -> datetime.date:
         return parse_jalali(value)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+def build_summary(db: Session, start=None, end=None) -> schemas.Summary:
+    def total(transaction_type: models.TransactionType) -> int:
+        query = db.query(func.sum(models.Transaction.amount)).filter(
+            models.Transaction.type == transaction_type
+        )
+
+        if start is not None:
+            query = query.filter(models.Transaction.date >= start)
+        if end is not None:
+            query = query.filter(models.Transaction.date <= end)
+        return query.scalar() or 0
+
+    income = total(models.TransactionType.income)
+    expense = total(models.TransactionType.expense)
+    return schemas.Summary(
+        total_income=income,
+        total_expense=expense,
+        balance=income - expense,
+    )
 
 
 @router.post("/", response_model=schemas.TransactionRead, status_code=201)
@@ -73,21 +94,18 @@ def list_transactions(
 
 @router.get("/summary", response_model=schemas.Summary)
 def get_summary(db: Session = Depends(get_db)):
-    def total(transaction_type: models.TransactionType) -> int:
-        result = (
-            db.query(func.sum(models.Transaction.amount))
-            .filter(models.Transaction.type == transaction_type)
-            .scalar()
-        )
-        return result or 0
+    return build_summary(db)
 
-    income = total(models.TransactionType.income)
-    expense = total(models.TransactionType.expense)
-    return schemas.Summary(
-        total_income=income,
-        total_expense=expense,
-        balance=income - expense,
-    )
+
+@router.get("/summary/monthly", response_model=schemas.Summary)
+def get_monthly_summary(year: int, month: int, db: Session = Depends(get_db)):
+    try:
+        start, end = month_range(year, month)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail="invalid year or month"
+        ) from exc
+    return build_summary(db, start, end)
 
 
 @router.get("/summary/by-category", response_model=list[schemas.CategoryTotal])
