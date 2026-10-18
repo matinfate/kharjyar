@@ -34,3 +34,10 @@ def client():
         yield test_client
     app.dependency_overrides.clear()
     Base.metadata.drop_all(bind=test_engine)
+
+
+@pytest.fixture
+def category(client):
+        response = client.post("/categories", json={"name":"food"})
+        return response.json()
+
