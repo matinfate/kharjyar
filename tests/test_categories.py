@@ -2,3 +2,17 @@ def test_list_categories_empty(client):
     response = client.get("/categories/")
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_create_category(client):
+    response = client.post("/categories/", json={"name": "food"})
+    assert response.status_code == 201
+    data = response.json()
+    assert data["name"] == "food"
+    assert "id" in data
+
+
+def test_create_duplicate_category_returns_409(client):
+    client.post("/categories/", json={"name": "food"})
+    response = client.post("categories/", json={"name": "food"})
+    assert response.status_code == 409
