@@ -38,6 +38,5 @@ def client():
 
 @pytest.fixture
 def category(client):
-        response = client.post("/categories", json={"name":"food"})
-        return response.json()
-
+    response = client.post("/categories/", json={"name": "food"})
+    return response.json()
