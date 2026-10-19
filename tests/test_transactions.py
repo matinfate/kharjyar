@@ -72,3 +72,33 @@ def test_monthly_summary_counts_only_given_month(client):
         "total_expense": 300,
         "balance": 700,
     }
+
+
+def test_monthly_summary_empty_month_returns_zeros(client):
+    response = client.get(
+        "/transactions/summary/monthly",
+        params={"year": 1405, "month": 7},
+    )
+    assert response.status_code == 200
+    assert response.json() == {
+        "total_income": 0,
+        "total_expense": 0,
+        "balance": 0,
+    }
+
+
+def test_monthly_summary_includes_last_day_of_leap_year(client):
+    create_transaction(client, 1000, "income", "1403/12/30")
+    create_transaction(client, 500, "income", "1404/01/01")
+
+    response = client.get(
+        "/transactions/summary/monthly",
+        params={"year": 1403, "month": 12},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "total_income": 1000,
+        "total_expense": 0,
+        "balance": 1000,
+    }
