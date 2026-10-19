@@ -1,3 +1,16 @@
+def create_transaction(client, amount, type, jalali_date):
+    response = client.post(
+        "/transactions/",
+        json={
+            "amount": amount,
+            "type": type,
+            "jalali_date": jalali_date,
+        },
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
 def test_create_transaction_with_jalali_date(client, category):
     response = client.post(
         "/transactions/",
@@ -41,3 +54,21 @@ def test_create_transaction_with_invalid_jalali_date_returns_422(client):
         },
     )
     assert response.status_code == 422
+
+
+def test_monthly_summary_counts_only_given_month(client):
+    create_transaction(client, 1000, "income", "1405/07/01")
+    create_transaction(client, 300, "expense", "1405/07/30")
+    create_transaction(client, 999, "expense", "1405/08/01")
+
+    response = client.get(
+        "/transactions/summary/monthly",
+        params={"year": 1405, "month": 7},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "total_income": 1000,
+        "total_expense": 300,
+        "balance": 700,
+    }
