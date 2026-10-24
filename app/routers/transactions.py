@@ -143,7 +143,11 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{transaction_id}", response_model=schemas.TransactionRead)
-def update_transaction(transaction_id: int, data: schemas.TransactionUpdate, db: Session = Depends(get_db)):
+def update_transaction(
+    transaction_id: int,
+    data: schemas.TransactionUpdate,
+    db: Session = Depends(get_db),
+):
     transaction = get_transaction_or_404(db, transaction_id)
     changes = data.model_dump(exclude_unset=True)
 
