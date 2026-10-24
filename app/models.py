@@ -1,8 +1,8 @@
 import datetime
 import enum
 
-from sqlalchemy import Column, Date, Enum, ForeignKey, Integer, String
-from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -15,28 +15,33 @@ class TransactionType(str, enum.Enum):
 class Category(Base):
     __tablename__ = "categories"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(unique=True)
 
-    transactions = relationship("Transaction", back_populates="category")
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="category"
+    )
 
 
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id = Column(Integer, primary_key=True)
-    amount = Column(Integer, nullable=False)
-    type = Column(Enum(TransactionType), nullable=False)
-    description = Column(String)
-    date = Column(Date, default=datetime.date.today, nullable=False)
-    category_id = Column(Integer, ForeignKey("categories.id"))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    amount: Mapped[int]
+    type: Mapped[TransactionType]
+    description: Mapped[str | None]
+    date: Mapped[datetime.date] = mapped_column(default=datetime.date.today)
+    category_id: Mapped[int | None] = mapped_column(
+        ForeignKey("categories.id"))
 
-    category = relationship("Category", back_populates="transactions")
+    category: Mapped["Category | None"] = relationship(
+        back_populates="transactions"
+    )
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True)
-    username = Column(String, unique=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(unique=True)
+    hashed_password: Mapped[str]
