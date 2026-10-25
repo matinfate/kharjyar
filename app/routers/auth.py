@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -40,3 +41,8 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return schemas.Token(access_token=create_access_token(user.username))
+
+
+@router.get("/me", response_model=schemas.UserRead)
+def read_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
