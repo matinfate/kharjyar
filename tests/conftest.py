@@ -27,7 +27,7 @@ def override_get_db():
 
 
 @pytest.fixture
-def client():
+def anon_client():
     Base.metadata.create_all(bind=test_engine)
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
@@ -35,6 +35,15 @@ def client():
     app.dependency_overrides.clear()
     Base.metadata.drop_all(bind=test_engine)
 
+
+@pytest.fixture
+def client(anon_client):
+    credentials = {"username": "testuser", "password": "testpass123"}
+    anon_client.post("/auth/register", json=credentials)
+    respone = anon_client.post("/auth/login", data=credentials)
+    token = respone.json()["access_token"]
+    anon_client.headers["Authorization"] = f"Bearer {token}"
+    return anon_client
 
 @pytest.fixture
 def category(client):
