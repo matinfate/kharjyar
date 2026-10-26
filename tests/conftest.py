@@ -45,6 +45,7 @@ def client(anon_client):
     anon_client.headers["Authorization"] = f"Bearer {token}"
     return anon_client
 
+
 @pytest.fixture
 def category(client):
     response = client.post("/categories/", json={"name": "food"})
