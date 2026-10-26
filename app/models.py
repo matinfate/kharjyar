@@ -1,7 +1,7 @@
 import datetime
 import enum
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -14,9 +14,11 @@ class TransactionType(str, enum.Enum):
 
 class Category(Base):
     __tablename__ = "categories"
+    __table_args__ = (UniqueConstraint("user_id", "name"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     transactions: Mapped[list["Transaction"]] = relationship(
         back_populates="category"
