@@ -40,8 +40,8 @@ def anon_client():
 def client(anon_client):
     credentials = {"username": "testuser", "password": "testpass123"}
     anon_client.post("/auth/register", json=credentials)
-    respone = anon_client.post("/auth/login", data=credentials)
-    token = respone.json()["access_token"]
+    response = anon_client.post("/auth/login", data=credentials)
+    token = response.json()["access_token"]
     anon_client.headers["Authorization"] = f"Bearer {token}"
     return anon_client
 
@@ -50,3 +50,14 @@ def client(anon_client):
 def category(client):
     response = client.post("/categories/", json={"name": "food"})
     return response.json()
+
+
+@pytest.fixture
+def other_client(anon_client):
+    credentials = {"username": "otheruser", "password": "otherpass123"}
+    other = TestClient(app)
+    other.post("/auth/register", json=credentials)
+    response = other.post("/auth/login", data=credentials)
+    token = response.json()['access_token']
+    other.headers["Authorization"] = f"Bearer {token}"
+    return other
