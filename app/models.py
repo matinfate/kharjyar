@@ -34,7 +34,12 @@ class Transaction(Base):
     description: Mapped[str | None]
     date: Mapped[datetime.date] = mapped_column(default=datetime.date.today)
     category_id: Mapped[int | None] = mapped_column(
-        ForeignKey("categories.id"))
+        ForeignKey("categories.id")
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id")
+    )
 
     category: Mapped["Category | None"] = relationship(
         back_populates="transactions"
