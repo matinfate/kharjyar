@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.jalali import month_range, parse_jalali
 from app.routers.categories import get_category_or_404
 
@@ -48,15 +49,19 @@ def build_summary(db: Session, start=None, end=None) -> schemas.Summary:
 
 
 @router.post("/", response_model=schemas.TransactionRead, status_code=201)
-def create_transaction(data: schemas.TransactionCreate, db: Session = Depends(get_db)):
+def create_transaction(
+    data: schemas.TransactionCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     if data.category_id is not None:
-        get_category_or_404(db, data.category_id)
+        get_category_or_404(db, data.category_id, current_user.id)
 
     values = data.model_dump(exclude_none=True)
     if "jalali_date" in values:
         values["date"] = parse_jalali(values.pop("jalali_date"))
 
-    transaction = models.Transaction(**values)
+    transaction = models.Transaction(**values, user_id=current_user.id)
     db.add(transaction)
     db.commit()
     db.refresh(transaction)
