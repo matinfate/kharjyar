@@ -102,3 +102,19 @@ def test_monthly_summary_includes_last_day_of_leap_year(client):
         "total_expense": 0,
         "balance": 1000,
     }
+
+
+def test_cannot_create_transaction_with_other_users_category(client, other_client):
+    created = other_client.post("/categories/", json={"name": "food"})
+    other_category_id = created.json()["id"]
+
+    response = client.post(
+        "/transactions/",
+        json={
+            "amount": 5000,
+            "type": "expense",
+            "category_id": other_category_id,
+        },
+    )
+
+    assert response.status_code == 404
