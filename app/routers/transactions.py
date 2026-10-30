@@ -13,8 +13,18 @@ from app.routers.categories import get_category_or_404
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
-def get_transaction_or_404(db: Session, transaction_id: int) -> models.Transaction:
-    transaction = db.get(models.Transaction, transaction_id)
+def get_transaction_or_404(
+    db: Session,
+    transaction_id: int,
+    user_id: int | None = None
+) -> models.Transaction:
+    query = db.query(models.Transaction).filter(
+        models.Transaction.id == transaction_id
+    )
+    if user_id is not None:
+        query = query.filter(models.Transaction.user_id == user_id)
+
+    transaction = query.first()
     if transaction is None:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return transaction
@@ -27,10 +37,16 @@ def jalali_or_422(value: str) -> datetime.date:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-def build_summary(db: Session, start=None, end=None) -> schemas.Summary:
+def build_summary(
+    db: Session,
+    user_id: int,
+    start=None,
+    end=None,
+) -> schemas.Summary:
     def total(transaction_type: models.TransactionType) -> int:
         query = db.query(func.sum(models.Transaction.amount)).filter(
-            models.Transaction.type == transaction_type
+            models.Transaction.type == transaction_type,
+            models.Transaction.user_id == user_id,
         )
 
         if start is not None:
@@ -75,8 +91,11 @@ def list_transactions(
     from_jalali: str | None = None,
     to_jalali: str | None = None,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    query = db.query(models.Transaction)
+    query = db.query(models.Transaction).filter(
+        models.Transaction.user_id == current_user.id
+    )
     if type is not None:
         query = query.filter(models.Transaction.type == type)
     if category_id is not None:
@@ -98,23 +117,34 @@ def list_transactions(
 
 
 @router.get("/summary", response_model=schemas.Summary)
-def get_summary(db: Session = Depends(get_db)):
-    return build_summary(db)
+def get_summary(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    return build_summary(db, current_user.id)
 
 
 @router.get("/summary/monthly", response_model=schemas.Summary)
-def get_monthly_summary(year: int, month: int, db: Session = Depends(get_db)):
+def get_monthly_summary(
+    year: int,
+    month: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     try:
         start, end = month_range(year, month)
     except ValueError as exc:
         raise HTTPException(
             status_code=422, detail="invalid year or month"
         ) from exc
-    return build_summary(db, start, end)
+    return build_summary(db, current_user.id, start, end)
 
 
 @router.get("/summary/by-category", response_model=list[schemas.CategoryTotal])
-def get_expense_by_category(db: Session = Depends(get_db)):
+def get_expense_by_category(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     rows = (
         db.query(
             models.Category.id,
@@ -126,6 +156,7 @@ def get_expense_by_category(db: Session = Depends(get_db)):
             models.Category, models.Transaction.category_id == models.Category.id
         )
         .filter(models.Transaction.type == models.TransactionType.expense)
+        .filter(models.Transaction.user_id == current_user.id)
         .group_by(models.Category.id, models.Category.name)
         .all()
     )
@@ -136,13 +167,21 @@ def get_expense_by_category(db: Session = Depends(get_db)):
 
 
 @router.get("/{transaction_id}", response_model=schemas.TransactionRead)
-def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    return get_transaction_or_404(db, transaction_id)
+def get_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    return get_transaction_or_404(db, transaction_id, current_user.id)
 
 
 @router.delete("/{transaction_id}", status_code=204)
-def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    transaction = get_transaction_or_404(db, transaction_id)
+def delete_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    transaction = get_transaction_or_404(db, transaction_id, current_user.id)
     db.delete(transaction)
     db.commit()
 
@@ -152,8 +191,9 @@ def update_transaction(
     transaction_id: int,
     data: schemas.TransactionUpdate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    transaction = get_transaction_or_404(db, transaction_id)
+    transaction = get_transaction_or_404(db, transaction_id, current_user.id)
     changes = data.model_dump(exclude_unset=True)
 
     if "jalali_date" in changes:
@@ -161,7 +201,7 @@ def update_transaction(
         changes["date"] = parse_jalali(jalali) if jalali is not None else None
 
     if changes.get("category_id") is not None:
-        get_category_or_404(db, changes["category_id"])
+        get_category_or_404(db, changes["category_id"], current_user.id)
 
     for required in ("amount", "type", "date"):
         if required in changes and changes[required] is None:
