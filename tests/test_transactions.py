@@ -118,3 +118,20 @@ def test_cannot_create_transaction_with_other_users_category(client, other_clien
     )
 
     assert response.status_code == 404
+
+
+def test_get_other_users_transaction_returns_404(client, other_client, category):
+    created = client.post(
+        "/transactions/",
+        json={
+            "amount": 100000,
+            "type": "expense",
+            "category_id": category["id"],
+            "jalali_date": "1404/08/01",
+        },
+    )
+    assert created.status_code == 201
+    transaction_id = created.json()["id"]
+    
+    response = other_client.get(f"/transactions/{transaction_id}")
+    assert response.status_code == 404
