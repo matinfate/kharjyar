@@ -132,6 +132,34 @@ def test_get_other_users_transaction_returns_404(client, other_client, category)
     )
     assert created.status_code == 201
     transaction_id = created.json()["id"]
-    
+
     response = other_client.get(f"/transactions/{transaction_id}")
     assert response.status_code == 404
+
+
+def test_list_transactions_only_returns_own(client, other_client):
+    mine = client.post(
+        "/transactions/",
+        json={
+            "amount": 100000,
+            "type": "income",
+            "jalali_date": "1405/08/01",
+        }
+    )
+    assert mine.status_code == 201
+
+    theirs = other_client.post(
+        "/transactions/",
+        json={
+            "amount": 5000,
+            "type": "expense",
+            "jalali_date": "1405/08/26",
+        }
+    )
+    assert theirs.status_code == 201
+
+    response = client.get("/transactions/")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert response.json()[0]["id"] == mine.json()["id"]
