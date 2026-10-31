@@ -163,3 +163,29 @@ def test_list_transactions_only_returns_own(client, other_client):
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["id"] == mine.json()["id"]
+
+
+def test_update_other_users_transaction_returns_404(client, other_client):
+    created = client.post(
+        "/transactions/",
+        json={
+            "amount": 10000,
+            "type": "income",
+            "jalali_date": "1405/08/01",
+        }
+    )
+    assert created.status_code == 201
+    transaction_id = created.json()["id"]
+
+    response = other_client.patch(
+        f"/transactions/{transaction_id}",
+        json={
+            "amount": 20000,
+            "type": "expense",
+            "jalali_date": "1405/09/09",
+        }
+    )
+    assert response.status_code == 404
+    response = client.get(f"/transactions/{transaction_id}")
+    assert response.status_code == 200
+    assert response.json()["amount"] == 10000
