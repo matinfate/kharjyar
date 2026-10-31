@@ -189,3 +189,33 @@ def test_update_other_users_transaction_returns_404(client, other_client):
     response = client.get(f"/transactions/{transaction_id}")
     assert response.status_code == 200
     assert response.json()["amount"] == 10000
+
+
+def test_summary_only_counts_own_transactions(client, other_client):
+    mine = client.post(
+        "/transactions/",
+        json={
+            "amount": 100000,
+            "type": "income",
+            "jalali_date": "1405/08/01",
+        }
+    )
+    assert mine.status_code == 201
+
+    theirs = other_client.post(
+        "/transactions/",
+        json={
+            "amount": 50000,
+            "type": "income",
+            "jalali_date": "1405/08/01",
+        }
+    )
+    assert theirs.status_code == 201
+    
+    response = client.get("/transactions/summary")
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert data["total_income"] == 100000
+    assert data["total_expense"] == 0
+    assert data["balance"] == 100000
