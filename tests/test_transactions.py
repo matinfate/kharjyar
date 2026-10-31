@@ -211,11 +211,29 @@ def test_summary_only_counts_own_transactions(client, other_client):
         }
     )
     assert theirs.status_code == 201
-    
+
     response = client.get("/transactions/summary")
     assert response.status_code == 200
-    
+
     data = response.json()
     assert data["total_income"] == 100000
     assert data["total_expense"] == 0
     assert data["balance"] == 100000
+
+
+def test_delete_other_users_transaction_returns_404(client, other_client):
+    mine = client.post(
+        "/transactions/",
+        json={
+            "amount": 100000,
+            "type": "income",
+            "jalali_date": "1405/08/01",
+        }
+    )
+    assert mine.status_code == 201
+    transaction_id = mine.json()["id"]
+    response = other_client.delete(f"/transactions/{transaction_id}")
+    assert response.status_code == 404
+    response = client.get(f"/transactions/{transaction_id}")
+    assert response.status_code == 200
+    assert response.json()["amount"] == 100000
