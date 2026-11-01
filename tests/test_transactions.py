@@ -237,3 +237,40 @@ def test_delete_other_users_transaction_returns_404(client, other_client):
     response = client.get(f"/transactions/{transaction_id}")
     assert response.status_code == 200
     assert response.json()["amount"] == 100000
+
+
+def test_by_category_only_counts_own_expenses(client, other_client, category):
+    mine = client.post(
+        "/transactions/",
+        json={
+            "amount": 5000,
+            "type": "expense",
+            "jalali_date": "1405/08/10",
+            "category_id": category["id"],
+        },
+    )
+    assert mine.status_code == 201
+
+    theirs = other_client.post("/categories/", json={"name": "transport"})
+    assert theirs.status_code == 201
+    other_category_id = theirs.json()["id"]
+
+    other_tx = other_client.post(
+        "/transactions/",
+        json={
+            "amount": 250000,
+            "type": "expense",
+            "jalali_date": "1405/08/10",
+            "category_id": other_category_id,
+        },
+    )
+    assert other_tx.status_code == 201
+
+    response = client.get("/transactions/summary/by-category")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["category_id"] == category["id"]
+    assert data[0]["category_name"] == "food"
+    assert data[0]["total"] == 5000
