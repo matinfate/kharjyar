@@ -274,3 +274,37 @@ def test_by_category_only_counts_own_expenses(client, other_client, category):
     assert data[0]["category_id"] == category["id"]
     assert data[0]["category_name"] == "food"
     assert data[0]["total"] == 5000
+
+
+def test_by_category_includes_uncategorized_expenses(client, category):
+    mine = client.post(
+        "/transactions/",
+        json={
+            "amount": 100000,
+            "type": "expense",
+            "jalali_date": "1405/08/10",
+            "category_id": category["id"],
+        },
+    )
+    assert mine.status_code == 201
+
+    uncategorized = client.post(
+        "/transactions/",
+        json={
+            "amount": 2100000,
+            "type": "expense",
+            "jalali_date": "1405/08/10",
+        },
+    )
+    assert uncategorized.status_code == 201
+
+    response = client.get("/transactions/summary/by-category")
+    assert response.status_code == 200
+    
+    data = response.json()
+    totals = {row["category_id"]: row for row in data}
+    
+    assert len(totals) == 2
+    assert totals[category["id"]]["category_name"] == "food"
+    assert totals[category["id"]]["total"] == 100000
+    assert totals[None]["total"] == 2100000
