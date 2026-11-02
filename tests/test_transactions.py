@@ -323,3 +323,33 @@ def test_by_category_includes_uncategorized_expenses(client, category):
 def test_transaction_endpoints_require_authentication(anon_client, path):
     response = anon_client.get(path)
     assert response.status_code == 401
+
+
+def test_cannot_update_transaction_with_other_users_category_returns_404(client, other_client, category):
+    created = client.post(
+        "/transactions/",
+        json={
+            "amount": 50000,
+            "type": "expense",
+            "jalali_date": "1405/08/11",
+            "category_id": category["id"],
+        },
+    )
+    assert created.status_code == 201
+    transaction_id = created.json()["id"]
+
+    other_category = other_client.post(
+        "/categories/",
+        json={"name": "transport"},
+    )
+    assert other_category.status_code == 201
+    
+    response = client.patch(
+        f"/transactions/{transaction_id}",
+        json={"category_id": other_category.json()["id"]},
+    )
+    assert response.status_code == 404
+    
+    after = client.get(f"/transactions/{transaction_id}")
+    assert after.status_code == 200 
+    assert after.json()["category_id"] == category["id"]
