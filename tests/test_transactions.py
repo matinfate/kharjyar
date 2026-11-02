@@ -1,3 +1,6 @@
+import pytest
+
+
 def create_transaction(client, amount, type, jalali_date):
     response = client.post(
         "/transactions/",
@@ -300,11 +303,23 @@ def test_by_category_includes_uncategorized_expenses(client, category):
 
     response = client.get("/transactions/summary/by-category")
     assert response.status_code == 200
-    
+
     data = response.json()
     totals = {row["category_id"]: row for row in data}
-    
+
     assert len(totals) == 2
     assert totals[category["id"]]["category_name"] == "food"
     assert totals[category["id"]]["total"] == 100000
     assert totals[None]["total"] == 2100000
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["/transactions/",
+     "/transactions/summary",
+     "/transactions/summary/monthly?year=1405&month=8",
+     "/transactions/summary/by-category",
+     "/transactions/1"])
+def test_transaction_endpoints_require_authentication(anon_client, path):
+    response = anon_client.get(path)
+    assert response.status_code == 401
