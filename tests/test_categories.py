@@ -72,3 +72,55 @@ def test_different_users_can_use_same_category_name(client, other_client):
 
     assert first.status_code == 201
     assert response.status_code == 201
+
+
+def test_update_category(client, category):
+    response = client.put(
+        f"/categories/{category['id']}",
+        json={"name": "transport"},
+    )
+    body = response.json()
+    assert response.status_code == 200
+    assert body['name'] == "transport"
+    assert body['id'] == category['id']
+
+    verify = client.get(f"/categories/{category['id']}")
+    assert verify.status_code == 200
+    assert verify.json()["name"] == "transport"
+
+
+def test_update_category_to_duplicate_name_returns_409(client, category):
+    client.post("/categories/", json={"name": "transport"})
+    response = client.put(
+        f"/categories/{category['id']}",
+        json={"name": "transport"},
+    )
+    assert response.status_code == 409
+
+
+def test_update_category_to_same_name_returns_200(client, category):
+    response = client.put(
+        f"/categories/{category['id']}",
+        json={"name": "food"},
+    )
+    assert response.status_code == 200
+
+
+def test_update_other_users_category_returns_404(client, other_client, category):
+    response = other_client.put(
+        f"/categories/{category['id']}",
+        json={"name": "hacked"},
+    )
+    assert response.status_code == 404
+
+    verify = client.get(f"/categories/{category['id']}")
+    assert verify.status_code == 200
+    assert verify.json()["name"] == "food"
+
+
+def test_update_category_with_empty_name_returns_422(client, category):
+    response = client.put(
+        f"/categories/{category['id']}",
+        json={"name": ""},
+    )
+    assert response.status_code == 422
