@@ -68,6 +68,31 @@ def get_category(
     return get_category_or_404(db, category_id, current_user.id)
 
 
+@router.put("/{category_id}", response_model=schemas.CategoryRead)
+def update_category(
+    category_id : int,
+    data: schemas.CategoryCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    category = get_category_or_404(db, category_id, current_user.id)
+    duplicate = (
+        db.query(models.Category)
+        .filter(
+            models.Category.user_id == current_user.id,
+            models.Category.name == data.name,
+            models.Category.id != category_id,
+        )
+        .first()
+    )
+    if duplicate:
+        raise HTTPException(status_code=409, detail="Category already exists")
+    category.name = data.name
+    db.commit()
+    db.refresh(category)
+    return category
+
+
 @router.delete("/{category_id}", status_code=204)
 def delete_category(
     category_id: int,
