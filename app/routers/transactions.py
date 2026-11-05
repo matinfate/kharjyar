@@ -16,15 +16,16 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 def get_transaction_or_404(
     db: Session,
     transaction_id: int,
-    user_id: int | None = None
+    user_id: int
 ) -> models.Transaction:
-    query = db.query(models.Transaction).filter(
-        models.Transaction.id == transaction_id
+    transaction = (
+        db.query(models.Transaction)
+        .filter(
+            models.Transaction.id == transaction_id,
+            models.Transaction.user_id == user_id,
+        )
+        .first()
     )
-    if user_id is not None:
-        query = query.filter(models.Transaction.user_id == user_id)
-
-    transaction = query.first()
     if transaction is None:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return transaction
