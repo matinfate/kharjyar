@@ -11,13 +11,16 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 def get_category_or_404(
     db: Session,
     category_id: int,
-    user_id: int | None = None
+    user_id: int
 ) -> models.Category:
-    query = db.query(models.Category).filter(models.Category.id == category_id)
-    if user_id is not None:
-        query = query.filter(models.Category.user_id == user_id)
-
-    category = query.first()
+    category = (
+        db.query(models.Category)
+        .filter(
+            models.Category.id == category_id,
+            models.Category.user_id == user_id,
+        )
+        .first()
+    )
     if category is None:
         raise HTTPException(status_code=404, detail="Category not found")
     return category
@@ -70,7 +73,7 @@ def get_category(
 
 @router.put("/{category_id}", response_model=schemas.CategoryRead)
 def update_category(
-    category_id : int,
+    category_id: int,
     data: schemas.CategoryCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
