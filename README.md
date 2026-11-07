@@ -18,6 +18,9 @@ Track income and expenses, organise them into categories, and get summaries per 
   - expense totals grouped by category
 - **Validation** — invalid input (bad dates, negative amounts, unknown categories) returns clear `4xx` errors
 - **Automated tests** — pytest suite using an isolated in-memory database, run on every push with GitHub Actions
+- **Authentication** — user registration and login with JWT-based authentication
+- **User isolation** — users can only access their own categories and transactions
+- **Database migrations** — schema versioning and migrations with Alembic
 
 ## Tech stack
 
@@ -55,6 +58,9 @@ Then open the interactive API docs at <http://127.0.0.1:8000/docs>.
 | Method | Path | Description |
 |---|---|---|
 | GET | `/health` | Health check |
+| POST | `/auth/register` | Register a new user |
+| POST | `/auth/login` | Login and receive a JWT access token |
+| GET | `/auth/me` | Get the authenticated user's profile |
 | POST | `/categories/` | Create a category |
 | GET | `/categories/` | List categories |
 | GET | `/categories/{id}` | Get one category |
@@ -125,18 +131,39 @@ GET /transactions/summary/monthly?year=1405&month=7
 ```
 kharjyar/
 ├── app/
-│   ├── main.py            # FastAPI app and router registration
-│   ├── database.py        # engine, session, get_db dependency
-│   ├── models.py          # SQLAlchemy models
-│   ├── schemas.py         # Pydantic request/response schemas
-│   ├── jalali.py          # Jalali <-> Gregorian helpers
+│   ├── __init__.py
+│   ├── main.py              # FastAPI application and router registration
+│   ├── config.py            # Application settings
+│   ├── database.py          # Database engine and session management
+│   ├── dependencies.py      # Authentication and database dependencies
+│   ├── models.py            # SQLAlchemy models
+│   ├── schemas.py           # Pydantic request/response schemas
+│   ├── security.py          # Password hashing and JWT handling
+│   ├── jalali.py            # Jalali date utilities
 │   └── routers/
-│       ├── categories.py
-│       └── transactions.py
-├── tests/                 # pytest suite
-├── .github/workflows/     # CI configuration
+│       ├── auth.py          # Authentication endpoints
+│       ├── categories.py    # Category endpoints
+│       └── transactions.py  # Transaction endpoints
+├── alembic/
+│   ├── versions/            # Database migration scripts
+│   ├── env.py
+│   └── script.py.mako
+├── tests/
+│   ├── conftest.py          # Pytest fixtures
+│   ├── test_auth.py         # Authentication tests
+│   ├── test_categories.py
+│   ├── test_health.py
+│   └── test_transactions.py
+├── .github/
+│   └── workflows/           # GitHub Actions CI
+├── .env.example
+├── .gitignore
+├── alembic.ini
+├── pyproject.toml
 ├── requirements.txt
-└── requirements-dev.txt
+├── requirements-dev.txt
+├── LICENSE
+└── README.md
 ```
 
 ## Running the tests
@@ -148,10 +175,10 @@ pytest
 
 ## Roadmap
 
-- [ ] Authentication (JWT) with per-user data
+- [x] Authentication (JWT) with per-user data
 - [ ] Docker support
 - [ ] Update endpoint for categories
-- [ ] Database migrations (Alembic)
+- [x] Database migrations (Alembic)
 
 ## License
 
