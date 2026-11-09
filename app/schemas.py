@@ -46,6 +46,14 @@ class TransactionRead(BaseModel):
         return to_jalali_str(self.date)
 
 
+class TransactionPage(BaseModel):
+    items: list[TransactionRead]
+    total: int
+    page: int
+    size: int
+    pages: int
+
+
 class TransactionUpdate(BaseModel):
     amount: int | None = Field(default=None, gt=0)
     type: TransactionType | None = None
