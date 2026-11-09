@@ -1,6 +1,7 @@
 import datetime
+import math
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -85,12 +86,14 @@ def create_transaction(
     return transaction
 
 
-@router.get("/", response_model=list[schemas.TransactionRead])
+@router.get("/", response_model=schemas.TransactionPage)
 def list_transactions(
     type: models.TransactionType | None = None,
     category_id: int | None = None,
     from_jalali: str | None = None,
     to_jalali: str | None = None,
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -114,7 +117,24 @@ def list_transactions(
         query = query.filter(models.Transaction.date >= start)
     if end is not None:
         query = query.filter(models.Transaction.date <= end)
-    return query.all()
+
+    total = query.count()
+    rows = (
+        query
+        .order_by(models.Transaction.date.desc(), models.Transaction.id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+        .all()
+    )
+    items = [schemas.TransactionRead.model_validate(row) for row in rows]
+
+    return schemas.TransactionPage(
+        items=items,
+        total=total,
+        page=page,
+        size=size,
+        pages=math.ceil(total / size),
+    )
 
 
 @router.get("/summary", response_model=schemas.Summary)
