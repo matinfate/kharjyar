@@ -164,8 +164,10 @@ def test_list_transactions_only_returns_own(client, other_client):
     response = client.get("/transactions/")
 
     assert response.status_code == 200
-    assert len(response.json()) == 1
-    assert response.json()[0]["id"] == mine.json()["id"]
+    data = response.json()
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["id"] == mine.json()["id"]
 
 
 def test_update_other_users_transaction_returns_404(client, other_client):
@@ -343,7 +345,7 @@ def test_cannot_create_transaction_with_other_users_category_returns_404(client,
 
     after = client.get("/transactions/")
     assert after.status_code == 200
-    assert after.json() == []
+    assert after.json()["items"] == []
 
 
 def test_cannot_update_transaction_with_other_users_category_returns_404(client, other_client, category):
@@ -372,3 +374,27 @@ def test_cannot_update_transaction_with_other_users_category_returns_404(client,
     after = client.get(f"/transactions/{transaction_id}")
     assert after.status_code == 200
     assert after.json()["category_id"] == category["id"]
+
+
+def test_list_transactions_pagination(client):
+    for i in range(15):
+        response = client.post(
+            "/transactions/",
+            json={
+                "amount": 1000 + i,
+                "type": "expense",
+                "jalali_date": "1405/08/18",
+            },
+        )
+        assert response.status_code == 201
+
+    response = client.get("/transactions/?page=2&size=10")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["total"] == 15
+    assert data["page"] == 2
+    assert data["size"] == 10
+    assert data["pages"] == 2
+    assert len(data["items"]) == 5
+    assert data["items"][0]["amount"] == 1004
