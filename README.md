@@ -26,7 +26,7 @@ Track income and expenses, organise them into categories, and get summaries per 
 
 | Area | Tool |
 |---|---|
-| Language | Python 3.11 |
+| Language | Python 3.11+ (Docker image: 3.13) |
 | Web framework | FastAPI |
 | Server | Uvicorn |
 | Validation | Pydantic v2 |
@@ -66,7 +66,7 @@ Then open the interactive API docs at <http://127.0.0.1:8000/docs>.
 | GET | `/categories/{id}` | Get one category |
 | DELETE | `/categories/{id}` | Delete a category (`409` if it has transactions) |
 | POST | `/transactions/` | Create a transaction |
-| GET | `/transactions/` | List transactions (filters below) |
+| GET | `/transactions/` | List transactions — paginated (`page`, `size`), filters below |
 | GET | `/transactions/{id}` | Get one transaction |
 | PATCH | `/transactions/{id}` | Partially update a transaction |
 | DELETE | `/transactions/{id}` | Delete a transaction |
@@ -173,10 +173,20 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
+## Running with Docker
+
+```bash
+cp .env.example .env   # then edit SECRET_KEY
+docker compose up --build
+```
+
+The API is on http://localhost:8000/docs. Data lives in the
+`kharjyar_data` volume, so it survives `docker compose down`.
+
 ## Roadmap
 
 - [x] Authentication (JWT) with per-user data
-- [ ] Docker support
+- [x] Docker support
 - [ ] Update endpoint for categories
 - [x] Database migrations (Alembic)
 
